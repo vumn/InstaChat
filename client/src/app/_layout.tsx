@@ -7,7 +7,7 @@ import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
 export default function RootLayout() {
   // TODO: replace with real auth state
-  const isSignedIn = false;
+  const isSignedIn = true;
 
   return (
     <GestureHandlerRootView style={{flex: 1}}>
