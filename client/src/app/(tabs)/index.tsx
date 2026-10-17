@@ -1,4 +1,4 @@
-import { View, Text, TextInput, TouchableOpacity } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { Conversation, UserStory } from '../../../types'
 import { Color, useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import { Colors } from '@/constants/Colors';
 import StoriesBar from '@/components/StoriesBar';
 import StoryViewer from '@/components/StoryViewer';
+import ConvoItem from '@/components/ConvoItem';
 
 export default function MessagesScreen() {
 
@@ -24,13 +25,25 @@ export default function MessagesScreen() {
     setTimeout(() => {
       setConversations(dummyConversationData as any);
       setLoading(false);  
+      console.log("Conversation length: ", conversations.length);
+      
     }, 1000);
   }
 
   useEffect(() => {
-    fetchConversations
+    fetchConversations();
   }, [])
 
+  const lowerSearch = search.toLowerCase();
+  const filtered = search ? conversations.filter(
+    (c) => c.participant?.name.toLowerCase().includes(lowerSearch) 
+          || c.participant?.handle.toLowerCase().includes(lowerSearch)
+  ) : conversations;
+
+  const openConvo = (c: Conversation) => {
+    router.push(`/chat/${c._id}`)
+
+  }
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       {/* Header */}
@@ -63,8 +76,26 @@ export default function MessagesScreen() {
         {selectedStory && <StoryViewer userStory={selectedStory} onClose={() => setSelectedStory(null)}/>}
 
       {/* Divider */}
+      <View style={styles.divider} />
 
       {/* Conversation list */}
+      {loading ? (
+        <ActivityIndicator style={{marginTop: 40}} color={Colors.primary} />
+      ) : (
+        <FlatList 
+          data={filtered}
+          keyExtractor={(c) => c._id}
+          contentContainerStyle={styles.listContent}
+          renderItem={({item}) => <ConvoItem convo={item} selected={true} onPress={() => openConvo(item)} />}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Ionicons name='chatbubbles-outline' size={44} color={Colors.outlineVariant} />
+              <Text style={styles.emptyTitle}>No conversations yet</Text>
+              <Text style={styles.emptySubtitle}>Go to Search to start chatting</Text>
+            </View>
+          }
+          />
+      )}
     </SafeAreaView>
   )
 }
