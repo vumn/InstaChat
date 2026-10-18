@@ -1,7 +1,7 @@
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { Conversation, UserStory } from '../../../types'
-import { Color, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { dummyConversationData } from '@/assets/assets';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from '@/assets/styles/MessagesScreen.styles';
