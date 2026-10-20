@@ -3,6 +3,7 @@ import express, {Request, Response} from 'express';
 import cors from "cors";
 import connectDB from "./config/db.js";
 import { clerkMiddleware } from "@clerk/express";
+import userRouter from "./routes/userRouter.js";
 
 const app = express();
 
@@ -19,6 +20,8 @@ const port = process.env.PORT || 3000;
 app.get('/', (req: Request, res: Response) => {
     res.send("Server is live");
 });
+
+app.use("/api/users", userRouter);
 
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
