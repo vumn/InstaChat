@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
@@ -16,10 +17,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../../../constants/Colors";
 import { SvgXml } from "react-native-svg";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
+import { useClerk, useSignIn, useSignUp } from "@clerk/expo";
 
 type Mode = "login" | "register";
 
 export default function AuthScreen() {
+  const { signIn } = useSignIn();
+  const { signUp } = useSignUp();
+  const { setActive } = useClerk();
+
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
   const [handle, setHandle] = useState("");
@@ -28,24 +34,123 @@ export default function AuthScreen() {
   const [verificationCode, setVerificationCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [verifyingMode, setVerifyingMode] = useState<
+    "login" | "login_mfa" | "register"
+  >("register");
 
   const router = useRouter();
 
   const handleSubmit = async () => {
+    if (!email.trim() || !password.trim())
+      return Alert.alert("Validation", "Please fill all fields");
+    if (mode === "register" && (!name.trim() || !handle.trim()))
+      return Alert.alert("Validation", "Please fill all fields");
+
     setLoading(true);
-    setTimeout(() => {
+    try {
+      if (mode === "login") {
+        if (!signIn) return;
+        const result = await signIn.create({
+          identifier: email,
+          password,
+        });
+
+        if (result.error) {
+          throw result.error;
+        }
+
+        if (signIn.status === "complete") {
+          await setActive({ session: signIn.createdSessionId });
+          router.replace("/(tabs)");
+        } else if (signIn.status === "needs_first_factor" && signIn.emailCode) {
+          await signIn.emailCode.sendCode();
+          setVerifyingMode("login");
+          setVerifying(true);
+        } else if (signIn.status === "needs_second_factor" && signIn.mfa) {
+          await signIn.mfa.sendEmailCode();
+          setVerifyingMode("login_mfa");
+          setVerifying(true);
+        }
+      } else {
+        if (!signUp) return;
+        const spaceIdx = name.trim().indexOf(" ");
+        const firstName =
+          spaceIdx !== -1 ? name.trim().substring(0, spaceIdx) : name.trim();
+        const lastName =
+          spaceIdx !== -1 ? name.trim().substring(spaceIdx + 1) : "";
+        const result = await signUp.create({
+          emailAddress: email,
+          password,
+          firstName,
+          lastName,
+          username: handle.toLowerCase().replace(/\s/g, ""),
+        });
+
+        if (result.error) {
+          throw result.error;
+        }
+        const sendResult = await signUp.verifications.sendEmailCode();
+        if (sendResult.error) {
+          throw sendResult.error;
+        }
+        setVerifyingMode("register");
+        setVerifying(true);
+      }
+    } catch (error: any) {
+      Alert.alert(
+        "Authentication error",
+        error?.errors?.[0].message || error?.message || "Something went wrong"
+      );
+    } finally {
       setLoading(false);
-      setVerifying(true);
-    }, 1000);
+    }
   };
 
   const handleVerify = async () => {
+    if (!verificationCode.trim()) return Alert.alert("Validation", "Please enter the verification code");
+
     setLoading(true);
-    setTimeout(() => {
+    try {
+      if (verifyingMode === "register") {
+        if (!signUp) return;
+        const result = await signUp.verifications.verifyEmailCode({
+          code: verificationCode
+        })
+        if (result.error) {
+          throw result.error;
+        }
+        if (signUp.status === "complete") {
+          await setActive({session: signUp.createdSessionId});
+          router.replace("/(tabs)");
+        } else {
+          Alert.alert("Verification Failed", "Please check the code and try again.")
+        }
+      } else {
+        if (!signIn) return;
+        if (verifyingMode === "login_mfa") {
+          await signIn.mfa.verifyEmailCode({
+            code: verificationCode
+          });
+        } else {
+          await signIn.emailCode.verifyCode({
+            code: verificationCode
+          });
+        }
+        if (signIn.status === "complete") {
+          await setActive({
+            session: signIn.createdSessionId
+          });
+          router.replace("/(tabs)");
+        } else {
+          Alert.alert("Verification Failed", "Please check the code and try again")
+        }
+      }
+    } catch (error: any) {
+      Alert.alert("Verification Error", error?.errors?.[0].message || error?.message || "Something went wrong")
+    } finally {
       setLoading(false);
-      router.replace("/(tabs)")
-    }, 1000);
-  }
+    }
+  };
 
   const svgMarkup = `<svg viewBox="0 0 256 256" preserveAspectRatio="xMidYMid"><defs><radialGradient id="messenger__a" cx="19.247%" cy="99.465%" r="108.96%" fx="19.247%" fy="99.465%"><stop offset="0%" stop-color="#09F"/><stop offset="60.975%" stop-color="#A033FF"/><stop offset="93.482%" stop-color="#FF5280"/><stop offset="100%" stop-color="#FF7061"/></radialGradient></defs><path fill="url(#messenger__a)" d="M128 0C55.894 0 0 52.818 0 124.16c0 37.317 15.293 69.562 40.2 91.835 2.09 1.871 3.352 4.493 3.438 7.298l.697 22.77c.223 7.262 7.724 11.988 14.37 9.054L84.111 243.9a10.218 10.218 0 0 1 6.837-.501c11.675 3.21 24.1 4.92 37.052 4.92 72.106 0 128-52.818 128-124.16S200.106 0 128 0Z"/><path fill="#FFF" d="m51.137 160.47 37.6-59.653c5.98-9.49 18.788-11.853 27.762-5.123l29.905 22.43a7.68 7.68 0 0 0 9.252-.027l40.388-30.652c5.39-4.091 12.428 2.36 8.82 8.085l-37.6 59.654c-5.981 9.489-18.79 11.852-27.763 5.122l-29.906-22.43a7.68 7.68 0 0 0-9.25.027l-40.39 30.652c-5.39 4.09-12.427-2.36-8.818-8.085Z"/></svg>
 `;
@@ -68,7 +173,7 @@ export default function AuthScreen() {
               >
                 <SvgXml xml={svgMarkup} width="50%" height="50%" />
               </LinearGradient>
-              <Text style={styles.appName}>InstaChat</Text>
+              <Text style={styles.appName}>Messender</Text>
             </View>
 
             {/* Hero text */}
@@ -117,9 +222,7 @@ export default function AuthScreen() {
                     <ActivityIndicator color={Colors.onPrimary} size="small" />
                   ) : (
                     <>
-                      <Text style={styles.btnText}>
-                        Verify Code
-                      </Text>
+                      <Text style={styles.btnText}>Verify Code</Text>
                       <Ionicons
                         name="arrow-forward"
                         size={18}
