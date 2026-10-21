@@ -3,8 +3,9 @@ import express, {NextFunction, Request, Response} from 'express';
 import cors from "cors";
 import connectDB from "./config/db.js";
 import { clerkMiddleware } from "@clerk/express";
-import userRouter from "./routes/userRouter.js";
+import userRouter from "./routes/userRoutes.js";
 import messageRouter from "./routes/messageRoutes.js";
+import storyRouter from "./routes/storyRoutes.js";
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.get('/', (req: Request, res: Response) => {
 
 app.use("/api/users", userRouter);
 app.use("/api/messages", messageRouter);
+app.use("/api/stories", storyRouter);
 
 // error handle
 app.use((error: any, _req: Request, res: Response, _next: NextFunction) => {
