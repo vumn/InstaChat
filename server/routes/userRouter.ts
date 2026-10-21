@@ -7,7 +7,7 @@ const userRouter = Router();
 
 userRouter.get("/", getUsers);
 userRouter.get("/search", searchUsers);
-userRouter.get("/profile", getProfile);
+userRouter.get("/profile", authMiddleware,  getProfile);
 userRouter.put("/profile", updload.single("avatar"), authMiddleware, updateProfile);
 
 export default userRouter;

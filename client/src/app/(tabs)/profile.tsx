@@ -1,5 +1,5 @@
 import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { dummyUserProfile } from '@/assets/assets'
 import { styles } from '@/assets/styles/ProfileScreen.styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -82,6 +82,25 @@ export default function profile() {
     ])
   }
 
+  const getUser = async () => {
+    try {
+      const {data} = await api.get("/api/users/profile");
+      setProfileName(data.user.name);
+      setProfileHandle(data.user.handle);
+      setProfileBio(data.user.bio);
+      if (data.user.avatar) {
+        setSavedAvatar(data.user.avatar);
+        setAvatarUri(null);
+      }
+    } catch (error: any) {
+      console.log(error.message);
+    }
+  }
+
+  useEffect(() => {
+    getUser();
+  }, [])
+
   return (
     <SafeAreaView style={styles.safe} edges={["top"]} >
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -112,10 +131,10 @@ export default function profile() {
 
           {!editMode && (
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{user?.name}</Text>
-              <Text style={styles.userHandle}>@{user?.handle}</Text>
+              <Text style={styles.userName}>{profileName}</Text>
+              <Text style={styles.userHandle}>@{profileHandle}</Text>
               <Text style={styles.userEmail}>{user?.email}</Text>
-              {user?.bio && <Text style={styles.userBio}>{user?.bio}</Text>}
+              {user?.bio && <Text style={styles.userBio}>{profileBio}</Text>}
             </View>
           )} 
         </View>
