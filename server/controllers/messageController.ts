@@ -4,6 +4,7 @@ import Conversation from "../models/Conversation.js";
 import cloudinary from "../config/cloudinary.js";
 import { Readable } from "stream";
 import Message from "../models/Message.js";
+import { handleConversationEvent } from "../socket/socketManager.js";
 
 // hepler: find convo between two users
 async function findConversation(userId: string, otherId: string) {
@@ -220,6 +221,10 @@ export const deleteConversation = async (req: AuthRequest, res: Response) => {
             return;
         }
         // notify other participants before deleting
+        await handleConversationEvent(userId, String(conversationId), {type: "chat_deleted", conversationId});
+
+        // delete all messages in conversation
+        await Message.deleteMany({conversationId});
 
         // delete the conversation itself
         await Conversation.findByIdAndDelete(conversationId);

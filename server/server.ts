@@ -6,6 +6,8 @@ import { clerkMiddleware } from "@clerk/express";
 import userRouter from "./routes/userRoutes.js";
 import messageRouter from "./routes/messageRoutes.js";
 import storyRouter from "./routes/storyRoutes.js";
+import http from 'http';
+import { initSocketServer } from "./socket/socketManager.js";
 
 const app = express();
 
@@ -36,6 +38,10 @@ app.use((error: any, _req: Request, res: Response, _next: NextFunction) => {
     });
 })
 
-app.listen(port, () => {
+// HTTP server and attach websocket
+const server = http.createServer(app);
+initSocketServer(server);
+
+server.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
 })
