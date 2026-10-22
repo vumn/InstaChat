@@ -2,7 +2,6 @@ import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, FlatList } 
 import React, { useEffect, useState } from 'react'
 import { Conversation, UserStory } from '../../../types'
 import { useRouter } from 'expo-router';
-import { dummyConversationData } from '@/assets/assets';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from '@/assets/styles/MessagesScreen.styles';
 import Ionicons from '@react-native-vector-icons/ionicons';
@@ -10,6 +9,7 @@ import { Colors } from '@/constants/Colors';
 import StoriesBar from '@/components/StoriesBar';
 import StoryViewer from '@/components/StoryViewer';
 import ConvoItem from '@/components/ConvoItem';
+import { api } from '@/context/AppContext';
 
 export default function MessagesScreen() {
 
@@ -22,12 +22,14 @@ export default function MessagesScreen() {
 
   const fetchConversations = () => {
     setLoading(true);
-    setTimeout(() => {
-      setConversations(dummyConversationData as any);
-      setLoading(false);  
-      console.log("Conversation length: ", conversations.length);
-      
-    }, 1000);
+    api.get<{success: boolean; conversations: Conversation[]}>("/api/messages/conversations")
+      .then(({data}) => {
+        if (data.success) setConversations(data.conversations);
+        setLoading(false);
+      })
+      .catch(() => {
+        setTimeout(fetchConversations, 1000);
+      })
   }
 
   useEffect(() => {
