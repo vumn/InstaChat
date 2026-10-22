@@ -9,14 +9,15 @@ import { Colors } from '@/constants/Colors';
 import StoriesBar from '@/components/StoriesBar';
 import StoryViewer from '@/components/StoryViewer';
 import ConvoItem from '@/components/ConvoItem';
-import { api } from '@/context/AppContext';
+import { api, useApp } from '@/context/AppContext';
 
 export default function MessagesScreen() {
 
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedStory, setSelectedStory] = useState<UserStory | null>(null);
+
+  const {setSelectedConversation, conversations, setConversations, selectedConversation} = useApp();
 
   const router = useRouter();
 
@@ -43,6 +44,7 @@ export default function MessagesScreen() {
   ) : conversations;
 
   const openConvo = (c: Conversation) => {
+    setSelectedConversation(c);
     router.push(`/chat/${c._id}`)
 
   }
